@@ -5,6 +5,9 @@ msgstr ""
 "Language: zh_Hans\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "Wake on LAN"
+msgstr "网络唤醒Plus"
+
 msgid "Wake on LAN +"
 msgstr "网络唤醒+"
 
