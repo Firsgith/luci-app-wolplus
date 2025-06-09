@@ -14,4 +14,9 @@ PKG_MAINTAINER:=sundaqiang
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
+define Package/luci-app-wolplus/config
+config PACKAGE_luci-app-wolplus
+	select PACKAGE_etherwake
+endef
+
 # call BuildPackage - OpenWrt buildroot signature
