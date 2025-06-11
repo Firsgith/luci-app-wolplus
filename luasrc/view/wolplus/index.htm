@@ -1,9 +1,72 @@
 <% include("cbi/map") %>
+<div id="wolplus-banner" style="display:none; background:#2196F3; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px; font-size:16px; overflow:hidden;">
+    <span id="wolplus-banner-msg"></span>
+</div>
+
+<div style="margin-top:15px; margin-bottom:15px;">
+    <label>
+        <input type="checkbox" id="enable-marquee-checkbox" />
+        <%:Enable Scrolling Banner%>
+    </label>
+    <label style="margin-left:20px;">
+        <%:Banner Display Time (seconds):%>
+        <input type="number" id="banner-display-time" value="5" min="1" max="60" style="width:60px;" />
+    </label>
+</div>
+
 <script type="text/javascript">
+	// 从 localStorage 读取设置，如果不存在则使用默认值
+	var enableMarquee = localStorage.getItem('wolplus_enableMarquee') === 'true';
+	var bannerDisplayTime = parseInt(localStorage.getItem('wolplus_bannerDisplayTime') || '5', 10);
+
+	// 初始化页面上的复选框和时间输入框状态
+	document.getElementById('enable-marquee-checkbox').checked = enableMarquee;
+	document.getElementById('banner-display-time').value = bannerDisplayTime;
+
+	// 监听复选框变化，并保存到 localStorage
+	document.getElementById('enable-marquee-checkbox').addEventListener('change', function() {
+		enableMarquee = this.checked;
+		localStorage.setItem('wolplus_enableMarquee', enableMarquee);
+	});
+
+	// 监听时间输入框变化，并保存到 localStorage
+	document.getElementById('banner-display-time').addEventListener('change', function() {
+		bannerDisplayTime = parseInt(this.value, 10);
+		if (isNaN(bannerDisplayTime) || bannerDisplayTime < 1) bannerDisplayTime = 1; // 最小值1秒
+		if (bannerDisplayTime > 60) bannerDisplayTime = 60; // 最大值60秒
+		this.value = bannerDisplayTime; // 更新输入框的值以反映限制
+		localStorage.setItem('wolplus_bannerDisplayTime', bannerDisplayTime);
+	});
+
 	function _id2section(id) {
 		var x = id.split(".");
 		return x[2];
 	}
+
+	var bannerTimeoutId; // 用于清除之前的定时器
+
+	function showBanner(msg, scrollAmount = 6) { // 默认滚动速度为6
+		var banner = document.getElementById("wolplus-banner");
+		var msgSpan = document.getElementById("wolplus-banner-msg");
+
+		// 清除任何之前的定时器，防止冲突
+		if (bannerTimeoutId) {
+			clearTimeout(bannerTimeoutId);
+		}
+
+		if (enableMarquee) {
+			msgSpan.innerHTML = '<marquee scrollamount="' + scrollAmount + '">' + msg + '</marquee>';
+		} else {
+			msgSpan.textContent = msg;
+		}
+		banner.style.display = "block";
+
+		// 根据设置的时间隐藏横幅
+		bannerTimeoutId = setTimeout(function(){
+			banner.style.display = "none";
+		}, bannerDisplayTime * 1000); // 转换为毫秒
+	}
+
 	function onclick_awake(id) {
 		var section = _id2section(id);
 		var btnXHR = new XHR();
@@ -11,9 +74,19 @@
 			function(x, data) {
 				if (x.responseText == "_uncommitted_") {
 					txt="<%:Please [Save & Apply] your changes first%>";
-					alert( txt.replace(new RegExp("<%:&%>", "g"), "&") );
+					showBanner(txt.replace(new RegExp("<%:&%>", "g"), "&"), 8); // 未保存消息用稍快的速度
 				} else {
-					alert( JSON.parse(x.response).data );
+					// 尝试解析JSON数据，如果解析失败则直接显示原始响应
+					var displayMsg = x.response;
+					try {
+						var parsedData = JSON.parse(x.response);
+						if (parsedData && parsedData.data) {
+							displayMsg = parsedData.data;
+						}
+					} catch (e) {
+						console.error("Error parsing JSON response:", e);
+					}
+					showBanner(displayMsg, 6); // 正常消息用默认速度
 				}
 			}
 		);
