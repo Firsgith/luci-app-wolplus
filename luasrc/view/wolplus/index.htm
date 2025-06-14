@@ -1,175 +1,250 @@
 <% include("cbi/map") %>
-<style>
-.announcement-banner {
-    display: none;
-    background-color: #1080c1;
-    color: white;
-    padding: 8px;
-    margin-bottom: 10px;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    height: 24px;
-    width: 35%;
-}
+<style type="text/css">
+	:root {
+		/* 成功状态颜色 */
+		--success-bg: #f0fdf4;
+		--success-border: #86efac;
+		--success-text: #166534;
 
-.announcement-content {
-    position: absolute;
-    white-space: nowrap;
-    padding-right: 50px;
-    left: 30px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 1;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
+		/* 警告状态颜色 */
+		--warning-bg: #fefce8;
+		--warning-border: #fef08a;
+		--warning-text: #854d0e;
+	}
 
-.megaphone-icon {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-    font-size: 16px;
-    color: white;
-}
+	.toast-container {
+		position: fixed;
+		top: 24px;
+		right: 24px;
+		z-index: 999999;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 
-.megaphone-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 30px;
-    background-color: #1080c1;
-    z-index: 2;
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
-}
+	.toast {
+		padding: 16px;
+		border-radius: 8px;
+		box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+		min-width: 300px;
+		max-width: 400px;
+		font-size: 14px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		opacity: 0;
+		transform: translateX(100%);
+		transition: all 0.3s ease;
+		position: relative;
+	}
 
-.warning-text {
-    color: #ffeb3b;
-}
+	.toast[data-mounted="true"] {
+		opacity: 1;
+		transform: translateX(0);
+	}
 
-.success-text {
-    color: #ffffff;
-    font-weight: 500;
-}
+	.toast[data-removed="true"] {
+		opacity: 0;
+		transform: translateX(100%);
+	}
+
+	/* 成功状态 */
+	.toast[data-type="success"] {
+		background: var(--success-bg);
+		border: 1px solid var(--success-border);
+		color: var(--success-text);
+	}
+
+	/* 警告状态 */
+	.toast[data-type="warning"] {
+		background: var(--warning-bg);
+		border: 1px solid var(--warning-border);
+		color: var(--warning-text);
+	}
+
+	.toast-content {
+		flex: 1;
+	}
+
+	.toast-message {
+		font-weight: 500;
+		line-height: 1.4;
+	}
+
+	.toast-close-button {
+		background: none;
+		border: none;
+		color: inherit;
+		cursor: pointer;
+		font-size: 16px;
+		padding: 0;
+		line-height: 1;
+		position: absolute;
+		top: -10px;
+		left: -10px;
+		border-radius: 50%;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+		opacity: 0.7;
+		transition: opacity 0.3s ease;
+	}
+
+	.toast-close-button:hover {
+		opacity: 1;
+	}
+
+	/* 成功状态的关闭按钮 */
+	.toast[data-type="success"] .toast-close-button {
+		background: var(--success-bg);
+		border: 1px solid var(--success-border);
+		color: var(--success-text);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	/* 警告状态的关闭按钮 */
+	.toast[data-type="warning"] .toast-close-button {
+		background: var(--warning-bg);
+		border: 1px solid var(--warning-border);
+		color: var(--warning-text);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.toast-progress-bar-container {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 4px; /* 进度条的厚度 */
+		background-color: rgba(0, 0, 0, 0.1); /* 进度条轨道的背景色 */
+		border-bottom-left-radius: 8px; /* 匹配通知框的底部圆角 */
+		border-bottom-right-radius: 8px; /* 匹配通知框的底部圆角 */
+		overflow: hidden; /* 隐藏超出容器的进度条部分 */
+	}
+
+	.toast-progress-bar {
+		height: 100%;
+		width: 100%; /* 初始宽度为 100% */
+		transition: width 3s linear; /* 宽度在 3 秒内线性变化 */
+	}
+
+	/* 成功状态的进度条颜色 */
+	.toast[data-type="success"] .toast-progress-bar {
+		background-color: var(--success-border);
+	}
+
+	/* 警告状态的进度条颜色 */
+	.toast[data-type="warning"] .toast-progress-bar {
+		background-color: var(--warning-border);
+	}
 </style>
 
-<div id="announcement-banner" class="announcement-banner">
-    <div class="megaphone-container"></div>
-    <span id="megaphone-icon" class="megaphone-icon">📢</span>
-    <div id="announcement-content" class="announcement-content"></div>
-</div>
+<script type="text/javascript">
+	class Toast {
+		constructor() {
+			this.container = null;
+			this.init();
+		}
+
+		init() {
+			// 创建容器
+			this.container = document.createElement('div');
+			this.container.className = 'toast-container';
+			document.body.appendChild(this.container);
+		}
+
+		show(message, type) {
+			const toast = document.createElement('div');
+			toast.className = 'toast';
+			toast.setAttribute('data-type', type);
+			toast.setAttribute('data-mounted', 'false');
+
+			const content = document.createElement('div');
+			content.className = 'toast-content';
+
+			const messageEl = document.createElement('div');
+			messageEl.className = 'toast-message';
+			messageEl.textContent = message;
+
+			content.appendChild(messageEl);
+			toast.appendChild(content);
+
+			// Add close button
+			const closeButton = document.createElement('button');
+			closeButton.className = 'toast-close-button';
+			closeButton.innerHTML = '&times;'; // '×' symbol
+			closeButton.onclick = () => {
+				toast.setAttribute('data-removed', 'true');
+				setTimeout(() => toast.remove(), 300);
+			};
+			toast.appendChild(closeButton);
+
+			// Add progress bar
+			const progressBarContainer = document.createElement('div');
+			progressBarContainer.className = 'toast-progress-bar-container';
+
+			const progressBar = document.createElement('div');
+			progressBar.className = 'toast-progress-bar';
+
+			progressBarContainer.appendChild(progressBar);
+			toast.appendChild(progressBarContainer);
+
+			this.container.appendChild(toast);
+
+			// 显示动画
+			requestAnimationFrame(() => {
+				toast.setAttribute('data-mounted', 'true');
+				// Start progress bar animation after toast is mounted
+				// Give it a tiny delay to ensure transition applies
+				setTimeout(() => {
+					progressBar.style.width = '0%';
+				}, 50);
+			});
+
+			// 3秒后自动关闭
+			setTimeout(() => {
+				toast.setAttribute('data-removed', 'true');
+				setTimeout(() => toast.remove(), 300);
+			}, 3000);
+		}
+
+		success(message) {
+			this.show(message, 'success');
+		}
+
+		warning(message) {
+			this.show(message, 'warning');
+		}
+	}
+
+	// 创建全局实例
+	const toast = new Toast();
+</script>
 
 <script type="text/javascript">
 	function _id2section(id) {
 		var x = id.split(".");
 		return x[2];
 	}
-
 	function onclick_awake(id) {
 		var section = _id2section(id);
 		var btnXHR = new XHR();
 		btnXHR.post('<%=url([[admin]], [[services]], [[wolplus]], [[awake]])%>/' + section, { token: '<%=token%>' },
 			function(x, data) {
 				if (x.responseText == "_uncommitted_") {
-					showAnnouncement("<%:Please [Save & Apply] your changes first%>", "warning");
+					var txt="<%:Please [Save & Apply] your changes first%>";
+					toast.warning( txt.replace(new RegExp("<%:&%>", "g"), "&") );
 				} else {
-					var response = JSON.parse(x.response).data;
-					// 提取MAC地址
-					var macMatch = response.match(/address is ([0-9A-Fa-f:]+)/);
-					if (macMatch && macMatch[1]) {
-						var mac = macMatch[1];
-						// 获取设备名称
-						var nameXHR = new XHR();
-						nameXHR.get('<%=url([[admin]], [[services]], [[wolplus]], [[get_name]])%>/' + section, null,
-							function(x, data) {
-								if (x && x.status == 200 && data.name) {
-									showAnnouncement("已向设备" + data.name + "（" + mac + "）发送远程唤醒包。", "success");
-								} else {
-									showAnnouncement("已向设备（" + mac + "）发送远程唤醒包。", "success");
-								}
-							}
-						);
-					} else {
-						showAnnouncement(response, "success");
-					}
+					var responseData = JSON.parse(x.response);
+					var deviceName = responseData.name;
+					var macAddressFormatted = responseData.macaddr_formatted;
+					var successMessage = "已向设备" + deviceName + " " + macAddressFormatted + " 成功发送远程唤醒指令。";
+					toast.success(successMessage);
 				}
 			}
 		);
 	}
-
-	// 滚动字幕相关函数
-	var banner = document.getElementById('announcement-banner');
-	var content = document.getElementById('announcement-content');
-	var megaphoneIcon = document.getElementById('megaphone-icon');
-	var isPaused = false;
-	var currentIndex = 0;
-	var announcements = [];
-	var position = 0;
-	var speed = 1.5;
-	var pauseCounter = 0;
-	var pauseDuration = 20;
-
-	function showAnnouncement(message, type) {
-		announcements = [message];
-		banner.style.display = 'block';
-		currentIndex = 0;
-		content.textContent = announcements[currentIndex];
-		
-		// 根据类型设置样式
-		if (type === "warning") {
-			megaphoneIcon.textContent = "⚠️";
-			content.className = "announcement-content warning-text";
-		} else {
-			megaphoneIcon.textContent = "📢";
-			content.className = "announcement-content success-text";
-		}
-		
-		var bannerWidth = banner.offsetWidth;
-		var contentWidth = content.offsetWidth;
-		position = bannerWidth;
-		
-		startScrolling();
-	}
-
-	function startScrolling() {
-		function moveText() {
-			if (!isPaused) {
-				if (position < -content.offsetWidth && pauseCounter >= pauseDuration) {
-					currentIndex = (currentIndex + 1) % announcements.length;
-					content.textContent = announcements[currentIndex];
-					position = banner.offsetWidth;
-					pauseCounter = 0;
-				} 
-				else if (position < -content.offsetWidth) {
-					pauseCounter++;
-				}
-				else {
-					position -= speed;
-				}
-				
-				content.style.left = position + 'px';
-			}
-			
-			requestAnimationFrame(moveText);
-		}
-		
-		moveText();
-	}
-
-	// 鼠标悬停暂停
-	banner.addEventListener('mouseenter', function() {
-		isPaused = true;
-	});
-	
-	banner.addEventListener('mouseleave', function() {
-		isPaused = false;
-	});
 </script>

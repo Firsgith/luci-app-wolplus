@@ -1,6 +1,7 @@
 module("luci.controller.wolplus", package.seeall)
 local t, a
 local x = luci.model.uci.cursor()
+local sys = require "luci.sys" -- 导入luci.sys模块
 
 function index()
     if not nixio.fs.access("/etc/config/wolplus") then return end
@@ -19,8 +20,18 @@ end
 function awake(sections)
 	lan = x:get("wolplus",sections,"maceth")
 	mac = x:get("wolplus",sections,"macaddr")
+	name = x:get("wolplus",sections,"name") or "未知设备"
+
+	-- 获取MAC地址对应的设备名称
+	local mac_hints = sys.net.mac_hints()
+	local hostname = mac_hints[mac]
+	local formatted_mac = mac
+	if hostname and hostname ~= "" then
+		formatted_mac = string.format("%s (%s)", mac, hostname)
+	end
+
     local e = {}
-    cmd = "/usr/bin/etherwake -D -i " .. lan .. " -b " .. mac .. " 2>&1"
+    cmd = "/usr/bin/etherwake -D -i " .. lan .. " -b " .. mac .. " 2>&1" -- etherwake指令仍使用原始MAC
 	local p = io.popen(cmd)
 	local msg = ""
 	if p then
@@ -36,6 +47,8 @@ function awake(sections)
 		p:close()
 	end
 	e["data"] = msg
+	e["name"] = name
+	e["macaddr_formatted"] = formatted_mac -- 将格式化的MAC地址发送给前端
     luci.http.prepare_content("application/json")
     luci.http.write_json(e)
 end
