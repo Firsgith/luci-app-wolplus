@@ -22,16 +22,11 @@ function awake(sections)
 	mac = x:get("wolplus",sections,"macaddr")
 	name = x:get("wolplus",sections,"name") or "未知设备"
 
-	-- 获取MAC地址对应的设备名称
-	local mac_hints = sys.net.mac_hints()
-	local hostname = mac_hints[mac]
-	local formatted_mac = mac
-	if hostname and hostname ~= "" then
-		formatted_mac = string.format("%s (%s)", mac, hostname)
-	end
+	-- Extract the raw MAC address for the etherwake command
+	local raw_mac = mac:match("([^%s]+)")
 
     local e = {}
-    cmd = "/usr/bin/etherwake -D -i " .. lan .. " -b " .. mac .. " 2>&1" -- etherwake指令仍使用原始MAC
+    cmd = "/usr/bin/etherwake -D -i " .. lan .. " -b " .. raw_mac .. " 2>&1"
 	local p = io.popen(cmd)
 	local msg = ""
 	if p then
@@ -48,7 +43,17 @@ function awake(sections)
 	end
 	e["data"] = msg
 	e["name"] = name
-	e["macaddr_formatted"] = formatted_mac -- 将格式化的MAC地址发送给前端
+	e["macaddr_formatted"] = raw_mac -- 将原始的MAC地址发送给前端
+	
+	-- 获取MAC地址对应的设备名称
+	local mac_hint = ""
+	sys.net.mac_hints(function(mac, hint_name)
+		if mac == raw_mac then
+			mac_hint = hint_name
+		end
+	end)
+	e["mac_hint"] = mac_hint -- 将MAC地址对应的设备名称发送给前端
+	
     luci.http.prepare_content("application/json")
     luci.http.write_json(e)
 end

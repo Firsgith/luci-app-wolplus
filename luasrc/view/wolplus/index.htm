@@ -1,12 +1,10 @@
 <% include("cbi/map") %>
 <style type="text/css">
 	:root {
-		/* 成功状态颜色 */
 		--success-bg: #f0fdf4;
 		--success-border: #86efac;
 		--success-text: #166534;
 
-		/* 警告状态颜色 */
 		--warning-bg: #fefce8;
 		--warning-border: #fef08a;
 		--warning-text: #854d0e;
@@ -48,14 +46,12 @@
 		transform: translateX(100%);
 	}
 
-	/* 成功状态 */
 	.toast[data-type="success"] {
 		background: var(--success-bg);
 		border: 1px solid var(--success-border);
 		color: var(--success-text);
 	}
 
-	/* 警告状态 */
 	.toast[data-type="warning"] {
 		background: var(--warning-bg);
 		border: 1px solid var(--warning-border);
@@ -97,20 +93,16 @@
 		opacity: 1;
 	}
 
-	/* 成功状态的关闭按钮 */
 	.toast[data-type="success"] .toast-close-button {
 		background: var(--success-bg);
 		border: 1px solid var(--success-border);
 		color: var(--success-text);
-		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
-	/* 警告状态的关闭按钮 */
 	.toast[data-type="warning"] .toast-close-button {
 		background: var(--warning-bg);
 		border: 1px solid var(--warning-border);
 		color: var(--warning-text);
-		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.toast-progress-bar-container {
@@ -118,25 +110,23 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
-		height: 4px; /* 进度条的厚度 */
-		background-color: rgba(0, 0, 0, 0.1); /* 进度条轨道的背景色 */
-		border-bottom-left-radius: 8px; /* 匹配通知框的底部圆角 */
-		border-bottom-right-radius: 8px; /* 匹配通知框的底部圆角 */
-		overflow: hidden; /* 隐藏超出容器的进度条部分 */
+		height: 4px;
+		background-color: rgba(0, 0, 0, 0.1);
+		border-bottom-left-radius: 8px;
+		border-bottom-right-radius: 8px;
+		overflow: hidden;
 	}
 
 	.toast-progress-bar {
 		height: 100%;
-		width: 100%; /* 初始宽度为 100% */
-		transition: width 3s linear; /* 宽度在 3 秒内线性变化 */
+		width: 100%;
+		transition: width 3s linear;
 	}
 
-	/* 成功状态的进度条颜色 */
 	.toast[data-type="success"] .toast-progress-bar {
 		background-color: var(--success-border);
 	}
 
-	/* 警告状态的进度条颜色 */
 	.toast[data-type="warning"] .toast-progress-bar {
 		background-color: var(--warning-border);
 	}
@@ -150,7 +140,6 @@
 		}
 
 		init() {
-			// 创建容器
 			this.container = document.createElement('div');
 			this.container.className = 'toast-container';
 			document.body.appendChild(this.container);
@@ -172,17 +161,15 @@
 			content.appendChild(messageEl);
 			toast.appendChild(content);
 
-			// Add close button
 			const closeButton = document.createElement('button');
 			closeButton.className = 'toast-close-button';
-			closeButton.innerHTML = '&times;'; // '×' symbol
+			closeButton.innerHTML = '&times;';
 			closeButton.onclick = () => {
 				toast.setAttribute('data-removed', 'true');
 				setTimeout(() => toast.remove(), 300);
 			};
 			toast.appendChild(closeButton);
 
-			// Add progress bar
 			const progressBarContainer = document.createElement('div');
 			progressBarContainer.className = 'toast-progress-bar-container';
 
@@ -194,17 +181,13 @@
 
 			this.container.appendChild(toast);
 
-			// 显示动画
 			requestAnimationFrame(() => {
 				toast.setAttribute('data-mounted', 'true');
-				// Start progress bar animation after toast is mounted
-				// Give it a tiny delay to ensure transition applies
 				setTimeout(() => {
 					progressBar.style.width = '0%';
 				}, 50);
 			});
 
-			// 3秒后自动关闭
 			setTimeout(() => {
 				toast.setAttribute('data-removed', 'true');
 				setTimeout(() => toast.remove(), 300);
@@ -220,7 +203,6 @@
 		}
 	}
 
-	// 创建全局实例
 	const toast = new Toast();
 </script>
 
@@ -241,7 +223,12 @@
 					var responseData = JSON.parse(x.response);
 					var deviceName = responseData.name;
 					var macAddressFormatted = responseData.macaddr_formatted;
-					var successMessage = "已向设备" + deviceName + " " + macAddressFormatted + " 成功发送远程唤醒指令。";
+					var macHint = responseData.mac_hint;
+					var successMessage = "已向设备" + deviceName;
+					if (macHint) {
+						successMessage += " (" + macHint + ")";
+					}
+					successMessage += " " + macAddressFormatted + " 发送远程唤醒指令。";
 					toast.success(successMessage);
 				}
 			}
