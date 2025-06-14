@@ -216,10 +216,13 @@
 		var btnXHR = new XHR();
 		btnXHR.post('<%=url([[admin]], [[services]], [[wolplus]], [[awake]])%>/' + section, { token: '<%=token%>' },
 			function(x, data) {
-				if (x.responseText == "_uncommitted_") {
-					var txt="<%:Please [Save & Apply] your changes first%>";
-					toast.warning( txt.replace(new RegExp("<%:&%>", "g"), "&") );
-				} else {
+				try {
+					if (x.status === 500) {
+						var txt="<%:Please [Save & Apply] your changes first%>";
+						toast.warning( txt.replace(new RegExp("<%:&%>", "g"), "&") );
+						return;
+					}
+					
 					var responseData = JSON.parse(x.response);
 					var deviceName = responseData.name;
 					var macAddressFormatted = responseData.macaddr_formatted;
@@ -227,6 +230,10 @@
 					var hintText = macHint ? " (" + macHint + ")" : "";
 					var successMessage = String.format("<%:Wake-on-LAN packet sent to device %s %s %s%>", deviceName, hintText, macAddressFormatted);
 					toast.success(successMessage);
+				} catch (e) {
+					console.error("Error processing response:", e);
+					var txt="<%:Please [Save & Apply] your changes first%>";
+					toast.warning( txt.replace(new RegExp("<%:&%>", "g"), "&") );
 				}
 			}
 		);
