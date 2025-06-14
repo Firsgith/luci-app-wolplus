@@ -224,11 +224,8 @@
 					var deviceName = responseData.name;
 					var macAddressFormatted = responseData.macaddr_formatted;
 					var macHint = responseData.mac_hint;
-					var successMessage = "已向设备" + deviceName;
-					if (macHint) {
-						successMessage += " (" + macHint + ")";
-					}
-					successMessage += " " + macAddressFormatted + " 发送远程唤醒指令。";
+					var hintText = macHint ? " (" + macHint + ")" : "";
+					var successMessage = String.format("<%:Wake-on-LAN packet sent to device %s %s %s%>", deviceName, hintText, macAddressFormatted);
 					toast.success(successMessage);
 				}
 			}

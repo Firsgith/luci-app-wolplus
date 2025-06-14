@@ -1,7 +1,7 @@
 module("luci.controller.wolplus", package.seeall)
 local t, a
 local x = luci.model.uci.cursor()
-local sys = require "luci.sys" -- 导入luci.sys模块
+local sys = require "luci.sys" 
 
 function index()
     if not nixio.fs.access("/etc/config/wolplus") then return end
@@ -43,16 +43,16 @@ function awake(sections)
 	end
 	e["data"] = msg
 	e["name"] = name
-	e["macaddr_formatted"] = raw_mac -- 将原始的MAC地址发送给前端
+	e["macaddr_formatted"] = raw_mac
 	
-	-- 获取MAC地址对应的设备名称
+	
 	local mac_hint = ""
 	sys.net.mac_hints(function(mac, hint_name)
 		if mac == raw_mac then
 			mac_hint = hint_name
 		end
 	end)
-	e["mac_hint"] = mac_hint -- 将MAC地址对应的设备名称发送给前端
+	e["mac_hint"] = mac_hint
 	
     luci.http.prepare_content("application/json")
     luci.http.write_json(e)
