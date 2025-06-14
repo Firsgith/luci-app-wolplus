@@ -6,6 +6,14 @@ function index()
     if not nixio.fs.access("/etc/config/wolplus") then return end
     entry({"admin", "services", "wolplus"}, cbi("wolplus"), _("Wake on LAN"), 95).dependent = true
 	entry( {"admin", "services", "wolplus", "awake"}, post("awake") ).leaf = true
+	entry( {"admin", "services", "wolplus", "get_name"}, call("get_name") ).leaf = true
+end
+
+function get_name(sections)
+	local e = {}
+	e["name"] = x:get("wolplus", sections, "name")
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(e)
 end
 
 function awake(sections)

@@ -1,70 +1,76 @@
 <% include("cbi/map") %>
-<div id="wolplus-banner" style="display:none; background:#2196F3; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px; font-size:16px; overflow:hidden;">
-    <span id="wolplus-banner-msg"></span>
-</div>
+<style>
+.announcement-banner {
+    display: none;
+    background-color: #1080c1;
+    color: white;
+    padding: 8px;
+    margin-bottom: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    height: 24px;
+    width: 35%;
+}
 
-<div style="margin-top:15px; margin-bottom:15px;">
-    <label>
-        <input type="checkbox" id="enable-marquee-checkbox" />
-        <%:Enable Scrolling Banner%>
-    </label>
-    <label style="margin-left:20px;">
-        <%:Banner Display Time (seconds):%>
-        <input type="number" id="banner-display-time" value="5" min="1" max="60" style="width:60px;" />
-    </label>
+.announcement-content {
+    position: absolute;
+    white-space: nowrap;
+    padding-right: 50px;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.megaphone-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    font-size: 16px;
+    color: white;
+}
+
+.megaphone-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background-color: #1080c1;
+    z-index: 2;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.warning-text {
+    color: #ffeb3b;
+}
+
+.success-text {
+    color: #ffffff;
+    font-weight: 500;
+}
+</style>
+
+<div id="announcement-banner" class="announcement-banner">
+    <div class="megaphone-container"></div>
+    <span id="megaphone-icon" class="megaphone-icon">📢</span>
+    <div id="announcement-content" class="announcement-content"></div>
 </div>
 
 <script type="text/javascript">
-	// 从 localStorage 读取设置，如果不存在则使用默认值
-	var enableMarquee = localStorage.getItem('wolplus_enableMarquee') === 'true';
-	var bannerDisplayTime = parseInt(localStorage.getItem('wolplus_bannerDisplayTime') || '5', 10);
-
-	// 初始化页面上的复选框和时间输入框状态
-	document.getElementById('enable-marquee-checkbox').checked = enableMarquee;
-	document.getElementById('banner-display-time').value = bannerDisplayTime;
-
-	// 监听复选框变化，并保存到 localStorage
-	document.getElementById('enable-marquee-checkbox').addEventListener('change', function() {
-		enableMarquee = this.checked;
-		localStorage.setItem('wolplus_enableMarquee', enableMarquee);
-	});
-
-	// 监听时间输入框变化，并保存到 localStorage
-	document.getElementById('banner-display-time').addEventListener('change', function() {
-		bannerDisplayTime = parseInt(this.value, 10);
-		if (isNaN(bannerDisplayTime) || bannerDisplayTime < 1) bannerDisplayTime = 1; // 最小值1秒
-		if (bannerDisplayTime > 60) bannerDisplayTime = 60; // 最大值60秒
-		this.value = bannerDisplayTime; // 更新输入框的值以反映限制
-		localStorage.setItem('wolplus_bannerDisplayTime', bannerDisplayTime);
-	});
-
 	function _id2section(id) {
 		var x = id.split(".");
 		return x[2];
-	}
-
-	var bannerTimeoutId; // 用于清除之前的定时器
-
-	function showBanner(msg, scrollAmount = 6) { // 默认滚动速度为6
-		var banner = document.getElementById("wolplus-banner");
-		var msgSpan = document.getElementById("wolplus-banner-msg");
-
-		// 清除任何之前的定时器，防止冲突
-		if (bannerTimeoutId) {
-			clearTimeout(bannerTimeoutId);
-		}
-
-		if (enableMarquee) {
-			msgSpan.innerHTML = '<marquee scrollamount="' + scrollAmount + '">' + msg + '</marquee>';
-		} else {
-			msgSpan.textContent = msg;
-		}
-		banner.style.display = "block";
-
-		// 根据设置的时间隐藏横幅
-		bannerTimeoutId = setTimeout(function(){
-			banner.style.display = "none";
-		}, bannerDisplayTime * 1000); // 转换为毫秒
 	}
 
 	function onclick_awake(id) {
@@ -73,23 +79,97 @@
 		btnXHR.post('<%=url([[admin]], [[services]], [[wolplus]], [[awake]])%>/' + section, { token: '<%=token%>' },
 			function(x, data) {
 				if (x.responseText == "_uncommitted_") {
-					txt="<%:Please [Save & Apply] your changes first%>";
-					showBanner(txt.replace(new RegExp("<%:&%>", "g"), "&"), 8); // 未保存消息用稍快的速度
+					showAnnouncement("<%:Please [Save & Apply] your changes first%>", "warning");
 				} else {
-					// 尝试解析JSON数据，如果解析失败则直接显示原始响应
-					var displayMsg = x.response;
-					try {
-						var parsedData = JSON.parse(x.response);
-						if (parsedData && parsedData.data) {
-							displayMsg = parsedData.data;
-						}
-					} catch (e) {
-						console.error("Error parsing JSON response:", e);
+					var response = JSON.parse(x.response).data;
+					// 提取MAC地址
+					var macMatch = response.match(/address is ([0-9A-Fa-f:]+)/);
+					if (macMatch && macMatch[1]) {
+						var mac = macMatch[1];
+						// 获取设备名称
+						var nameXHR = new XHR();
+						nameXHR.get('<%=url([[admin]], [[services]], [[wolplus]], [[get_name]])%>/' + section, null,
+							function(x, data) {
+								if (x && x.status == 200 && data.name) {
+									showAnnouncement("已向设备" + data.name + "（" + mac + "）发送远程唤醒包。", "success");
+								} else {
+									showAnnouncement("已向设备（" + mac + "）发送远程唤醒包。", "success");
+								}
+							}
+						);
+					} else {
+						showAnnouncement(response, "success");
 					}
-					showBanner(displayMsg, 6); // 正常消息用默认速度
 				}
 			}
 		);
 	}
-</script>
 
+	// 滚动字幕相关函数
+	var banner = document.getElementById('announcement-banner');
+	var content = document.getElementById('announcement-content');
+	var megaphoneIcon = document.getElementById('megaphone-icon');
+	var isPaused = false;
+	var currentIndex = 0;
+	var announcements = [];
+	var position = 0;
+	var speed = 1.5;
+	var pauseCounter = 0;
+	var pauseDuration = 20;
+
+	function showAnnouncement(message, type) {
+		announcements = [message];
+		banner.style.display = 'block';
+		currentIndex = 0;
+		content.textContent = announcements[currentIndex];
+		
+		// 根据类型设置样式
+		if (type === "warning") {
+			megaphoneIcon.textContent = "⚠️";
+			content.className = "announcement-content warning-text";
+		} else {
+			megaphoneIcon.textContent = "📢";
+			content.className = "announcement-content success-text";
+		}
+		
+		var bannerWidth = banner.offsetWidth;
+		var contentWidth = content.offsetWidth;
+		position = bannerWidth;
+		
+		startScrolling();
+	}
+
+	function startScrolling() {
+		function moveText() {
+			if (!isPaused) {
+				if (position < -content.offsetWidth && pauseCounter >= pauseDuration) {
+					currentIndex = (currentIndex + 1) % announcements.length;
+					content.textContent = announcements[currentIndex];
+					position = banner.offsetWidth;
+					pauseCounter = 0;
+				} 
+				else if (position < -content.offsetWidth) {
+					pauseCounter++;
+				}
+				else {
+					position -= speed;
+				}
+				
+				content.style.left = position + 'px';
+			}
+			
+			requestAnimationFrame(moveText);
+		}
+		
+		moveText();
+	}
+
+	// 鼠标悬停暂停
+	banner.addEventListener('mouseenter', function() {
+		isPaused = true;
+	});
+	
+	banner.addEventListener('mouseleave', function() {
+		isPaused = false;
+	});
+</script>
